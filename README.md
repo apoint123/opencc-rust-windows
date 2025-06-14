@@ -1,89 +1,109 @@
-OpenCC Rust
-====================
+# OpenCC Rust for Windows
 
-[![CI](https://github.com/magiclen/opencc-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/magiclen/opencc-rust/actions/workflows/ci.yml)
+This is a fork of the original [opencc-rust](https://github.com/magiclen/opencc-rust), specially optimized to provide a better experience on the **Windows (x86_64-pc-windows-msvc)** platform.
 
-Open Chinese Convert(OpenCC, 開放中文轉換) binding for the Rust language for conversion between Traditional Chinese and Simplified Chinese.
+## Core Features
+
+  * **Out-of-the-Box on Windows**: On the `x86_64-pc-windows-msvc` target, the build script automatically links against the vendored OpenCC libraries included in this project. No manual setup is required.
+  * **Static Linking by Default**: On Windows, static linking is used by default, producing an executable that does not depend on external OpenCC DLLs.
+  * **Multi-Platform Compatibility**: While prioritizing Windows, this crate maintains the original methods for compiling on other platforms like Linux and macOS via `pkg-config` or `vcpkg`.
 
 ## Compilation
 
-To compile this crate, you need to compile the OpenCC C++ library first. You can install OpenCC in your operating system, or in somewhere in your file system. As for the latter, you need to set the following environment variables to link the OpenCC library:
+### Windows (x86_64-pc-windows-msvc)
 
-* `OPENCC_LIB_DIRS`: The directories of library files, like `-L`. Use `:` to separate.
-* `OPENCC_LIBS`: The library names that you want to link, like `-l`. Use `:` to separate. Typically, it contains **opencc:marisa**.
-* `OPENCC_INCLUDE_DIRS`: The directories of header files, like `-i`. Use `:` to separate.
-* `OPENCC_STATIC`: Whether to use `static` or `dylib`.
-* `OPENCC_DYLIB_STDCPP`: If you use `static` linking, and your OpenCC library is compiled by the GNU C, this environment variable should be set.
-* `OPENCC_STATIC_STDCPP`: If you use `static` linking, and your OpenCC library is compiled by musl libc, this environment variable should be set.
+**No additional configuration is needed.**
 
-## Examples
+The build script will automatically detect your target platform and link the pre-compiled OpenCC libraries bundled with the project. Simply run `cargo build`.
 
-```rust
-use opencc_rust::*;
+### Other Platforms (Linux, macOS, etc.)
 
-let opencc = OpenCC::new(DefaultConfig::TW2SP).unwrap();
+For non-Windows MSVC platforms, you first need to install the OpenCC C++ library on your system. You can do this via a system package manager (e.g., `apt`, `yum`, `brew`) or by compiling from the source.
 
-let s = opencc.convert("涼風有訊");
+The following methods are supported for linking the OpenCC library:
 
-assert_eq!("凉风有讯", &s);
+1.  **vcpkg (Recommended)**: If you are using MSVC for a target other than `x86_64-pc-windows-msvc`, or if you use vcpkg on other platforms, the build script will automatically try to find OpenCC via vcpkg.
+2.  **pkg-config (Default for Linux/macOS)**: The build script will use `pkg-config` to find OpenCC automatically.
+3.  **Environment Variables**: If the above methods are not applicable, you can manually specify the library locations by setting the following environment variables:
+      * `OPENCC_LIB_DIRS`: The directories of library files (`-L`).
+      * `OPENCC_LIBS`: The names of the libraries to link (`-l`), typically `opencc:marisa:darts`.
+      * `OPENCC_INCLUDE_DIRS`: The directories of header files (`-i`).
+      * `OPENCC_STATIC`: Set to `1` or `true` to force static linking.
 
-let s = opencc.convert_to_buffer("，秋月無邊", s);
+## Usage Examples
 
-assert_eq!("凉风有讯，秋月无边", &s);
-```
+The following examples demonstrate how to use the `static-dictionaries` feature to perform conversions. This is the most convenient approach, as it compiles all the necessary dictionary files directly into your program.
 
-```rust
-use opencc_rust::*;
-
-let opencc = OpenCC::new(DefaultConfig::S2TWP).unwrap();
-
-let s = opencc.convert("凉风有讯");
-
-assert_eq!("涼風有訊", &s);
-
-let s = opencc.convert_to_buffer("，秋月无边", s);
-
-assert_eq!("涼風有訊，秋月無邊", &s);
-```
-
-## Static Dictionaries
-
-Usually, OpenCC needs to be executed on an environment where OpenCC is installed. If you want to make it portable, you can enable the `static-dictionaries` feature.
+First, add the dependencies to your `Cargo.toml`:
 
 ```toml
-[dependencies.opencc-rust-windows]
-version = "*"
-features = ["static-dictionaries"]
+[dependencies]
+opencc-rust-windows = "1.2.0"
+tempfile = "3" # Used for creating a temporary directory in the example
 ```
-Then, the `generate_static_dictionary` and `generate_static_dictionaries` functions are available.
 
-The default OpenCC dictionaries will be compiled into the binary file by `lazy_static_include` crate. And you can use the two functions to recover them on demand.
-
-For example,
+### Traditional to Simplified (TW2SP)
 
 ```rust
-use opencc_rust::*;
+use opencc_rust_windows::{*, DefaultConfig};
+use tempfile::tempdir;
+use std::path::Path;
 
-let output_path = "/path/to/dictionaries-directory";
+// 1. Create a temporary directory to store the generated dictionary files.
+let dictionary_dir = tempdir().unwrap();
+let dictionary_path = dictionary_dir.path();
 
-generate_static_dictionary(&output_path, DefaultConfig::TW2SP).unwrap();
+// 2. Generate the dictionary and configuration files required for `tw2sp.json`.
+generate_static_dictionary(&dictionary_path, DefaultConfig::TW2SP).unwrap();
 
-let opencc = OpenCC::new(Path::join(&output_path, DefaultConfig::TW2SP)).unwrap();
+// 3. Construct the full path to the configuration file.
+let config_path = dictionary_path.join(DefaultConfig::TW2SP.get_file_name());
 
-assert_eq!("凉风有讯", &opencc.convert("涼風有訊"));
+// 4. Create an OpenCC instance using the config file.
+let opencc = OpenCC::new(config_path).unwrap();
+
+// 5. Perform the conversion.
+let text_to_convert = "涼風有訊，秋月無邊";
+let converted_text = opencc.convert(text_to_convert).unwrap();
+
+assert_eq!("凉风有讯，秋月无边", &converted_text);
+
+println!("`{}` => `{}`", text_to_convert, converted_text);
 ```
 
-## Supported Platforms
+### Simplified to Traditional (S2TWP)
 
-This crate currently supports **Linux**. Other platforms are not guaranteed.
+```rust
+use opencc_rust_windows::{*, DefaultConfig};
+use tempfile::tempdir;
+use std::path::Path;
+
+let dictionary_dir = tempdir().unwrap();
+let dictionary_path = dictionary_dir.path();
+
+generate_static_dictionary(&dictionary_path, DefaultConfig::S2TWP).unwrap();
+
+let config_path = dictionary_path.join(DefaultConfig::S2TWP.get_file_name());
+
+let opencc = OpenCC::new(config_path).unwrap();
+
+let text_to_convert = "凉风有讯，秋月无边";
+
+let mut buffer = opencc.convert("凉风有讯").unwrap();
+opencc.convert_append("，秋月无边", &mut buffer).unwrap();
+
+assert_eq!("涼風有訊，秋月無邊", &buffer);
+
+println!("`{}` => `{}`", text_to_convert, buffer);
+```
 
 ## Crates.io
 
-https://crates.io/crates/opencc-rust
+[https://crates.io/crates/opencc-rust-windows](https://crates.io/crates/opencc-rust-windows)
 
 ## Documentation
 
-https://docs.rs/opencc-rust
+[https://docs.rs/opencc-rust-windows](https://docs.rs/opencc-rust-windows)
 
 ## License
 
