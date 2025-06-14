@@ -1,27 +1,34 @@
 [package]
-name = "opencc-rust"
-version = "1.1.19"
-authors = ["Magic Len <len@magiclen.org>"]
-edition = "2021"
-rust-version = "1.61"
-repository = "https://github.com/magiclen/opencc-rust"
-homepage = "https://magiclen.org/opencc-rust"
+name = "opencc-rust-windows"
+version = "1.2.0"
+authors = ["Magic Len <len@magiclen.org>", "apoint123 <vpnzaph@outlook.com>"]
+edition = "2024"
+repository = "https://github.com/apoint123/opencc-rust-windows"
+homepage = "https://github.com/apoint123/opencc-rust-windows"
 keywords = ["chinese", "opencc", "traditional", "simple"]
 categories = ["external-ffi-bindings", "localization"]
-description = "Open Chinese Convert(OpenCC, 開放中文轉換) binding for the Rust language for conversion between Traditional Chinese and Simplified Chinese."
+description = "Open Chinese Convert(OpenCC, 開放中文轉換) binding for the Rust language for conversion between Traditional Chinese and Simplified Chinese. Optimized for Windows x86_64 platforms"
 license = "Apache-2.0"
-include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE", "build.rs", "opencc/**/*"]
+include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE", "build.rs", "opencc/**/*", "vendor/**/*"]
 
 [dependencies]
-libc = "0.2.43"
-lazy-static-include = { version = "3.1.1", optional = true }
-lazy_static = { version = "1.4", optional = true }
+libc = "1.0.0-alpha.1"
+thiserror = "2.0.12"
+phf = { version = "0.11.3", features = ["macros"]}
 
 [build-dependencies]
-pkg-config = "0.3.14"
+pkg-config = "0.3.32"
+phf = { version = "0.11.3", features = ["macros"]}
 
 [features]
-static-dictionaries = ["lazy-static-include", "lazy_static"]
+default = ["static-dictionaries"]
+static-dictionaries = []
+
+[dev-dependencies]
+tempfile = "3.20.0"
 
 [package.metadata.docs.rs]
 all-features = true
+
+[build-dependencies.vcpkg]
+version = "0.2.15"
