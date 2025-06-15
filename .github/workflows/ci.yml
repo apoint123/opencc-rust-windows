@@ -75,11 +75,12 @@ jobs:
           Copy-Item -Path "$dll_dir\*.dll" -Destination "target/debug/deps/"
 
       - name: Run tests
-        run: cargo test --no-build --features ${{ matrix.features }}
+        run: cargo test --features ${{ matrix.features }}
         if: matrix.features != 'default'
       - name: Run tests
-        run: cargo test --no-build
+        run: cargo test
         if: matrix.features == 'default'
+
   test-linux:
     name: Test on Linux
     runs-on: ubuntu-latest
