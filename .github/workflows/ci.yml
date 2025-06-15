@@ -57,23 +57,27 @@ jobs:
 
       - name: Setup MSVC Developer Environment
         uses: TheMrMilchmann/setup-msvc-dev@v3
-        with:
-          arch: x64
 
-      - name: Copy MSVC Runtime DLLs for testing
+      - name: Build tests to create target directory
+        run: cargo build --tests --features ${{ matrix.features }}
+        if: matrix.features != 'default'
+      - name: Build tests to create target directory
+        run: cargo build --tests
+        if: matrix.features == 'default'
+
+      - name: Copy MSVC Runtime DLLs
+        shell: pwsh
         run: |
-          $dll_dir = (Get-ChildItem -Path "$env:VCToolsRedistDir" -Filter "vcruntime140.dll" -Recurse | Select-Object -First 1).DirectoryName
+          $dll_dir = (Get-ChildItem -Path "$($env:VCToolsRedistDir)\x64" -Filter "vcruntime140.dll" -Recurse | Select-Object -First 1).DirectoryName
           Write-Host "Found MSVC DLLs at: $dll_dir"
           Copy-Item -Path "$dll_dir\*.dll" -Destination "target/debug/deps/"
-        shell: pwsh
 
-      - name: Run tests with ${{ matrix.features }} features
-        if: matrix.features == 'default'
-        run: cargo test
-      - name: Run tests with ${{ matrix.features }} features
+      - name: Run tests
+        run: cargo test --no-build --features ${{ matrix.features }}
         if: matrix.features != 'default'
-        run: cargo test --features ${{ matrix.features }}
-
+      - name: Run tests
+        run: cargo test --no-build
+        if: matrix.features == 'default'
   test-linux:
     name: Test on Linux
     runs-on: ubuntu-latest
