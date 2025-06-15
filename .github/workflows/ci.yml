@@ -60,6 +60,13 @@ jobs:
         with:
           arch: x64
 
+      - name: Copy MSVC Runtime DLLs for testing
+        run: |
+          $dll_dir = (Get-ChildItem -Path "$env:VCToolsRedistDir" -Filter "vcruntime140.dll" -Recurse | Select-Object -First 1).DirectoryName
+          Write-Host "Found MSVC DLLs at: $dll_dir"
+          Copy-Item -Path "$dll_dir\*.dll" -Destination "target/debug/deps/"
+        shell: pwsh
+
       - name: Run tests with ${{ matrix.features }} features
         if: matrix.features == 'default'
         run: cargo test
