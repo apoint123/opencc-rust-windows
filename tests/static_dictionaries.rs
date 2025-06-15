@@ -24,7 +24,7 @@ fn generate_static_dictionary() {
     let s = String::from("無");
 
     let config_filename = DefaultConfig::TW2SP.get_file_name();
-    let config_path = output_path.join(config_filename); 
+    let config_path = output_path.join(config_filename);
 
     println!(
         "Prepare to initialize OpenCC using configuration file '{}'...",
@@ -38,5 +38,4 @@ fn generate_static_dictionary() {
     assert_eq!("无", &opencc.convert(s).unwrap());
 
     println!("Conversion Successful!");
-
 }

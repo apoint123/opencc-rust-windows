@@ -54,6 +54,12 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: ${{ matrix.toolchain }}
+
+      - name: Setup MSVC Developer Environment
+        uses: TheMrMilchmann/setup-msvc-dev@v3
+        with:
+          arch: x64
+
       - name: Run tests with ${{ matrix.features }} features
         if: matrix.features == 'default'
         run: cargo test
@@ -69,7 +75,6 @@ jobs:
       matrix:
         toolchain:
           - stable
-          - "1.61"
         features:
           - "default"
           - "static-dictionaries"
