@@ -57,6 +57,8 @@ jobs:
 
       - name: Setup MSVC Developer Environment
         uses: TheMrMilchmann/setup-msvc-dev@v3
+        with:
+          arch: x64
 
       - name: Build tests to create target directory
         run: cargo build --tests --features ${{ matrix.features }}
