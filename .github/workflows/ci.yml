@@ -7,6 +7,7 @@ env:
 
 jobs:
   rustfmt:
+    name: Format Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,12 +18,13 @@ jobs:
       - uses: actions-rust-lang/rustfmt@v1
 
   clippy:
+    name: Clippy Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Install OpenCC
+      - name: Install OpenCC for analysis
         run: |
           sudo apt update
-          sudo apt install doxygen cmake wget
+          sudo apt install -y doxygen cmake wget
           wget https://github.com/BYVoid/OpenCC/archive/refs/tags/ver.1.1.9.tar.gz
           tar xf ver.1.1.9.tar.gz
           cd OpenCC-*
@@ -32,58 +34,50 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: clippy
-      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
-  tests:
+  test-windows:
+    name: Test on Windows
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
         toolchain:
           - stable
           - nightly
         features:
-          -
-          - --features static-dictionaries
-    name: Test ${{ matrix.toolchain }} on ${{ matrix.os }} (${{ matrix.features }})
-    runs-on: ${{ matrix.os }}
+          - "default"
+          - "static-dictionaries"
     steps:
-      - name: Install OpenCC
-        run: |
-          sudo apt update
-          sudo apt install doxygen cmake wget
-          wget https://github.com/BYVoid/OpenCC/archive/refs/tags/ver.1.1.9.tar.gz
-          tar xf ver.1.1.9.tar.gz
-          cd OpenCC-*
-          make -j$(nproc) PREFIX=/usr
-          sudo make PREFIX=/usr install
-      - run: sudo ldconfig
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: ${{ matrix.toolchain }}
-      - run: cargo test ${{ matrix.features }}
-      - run: cargo doc ${{ matrix.features }}
+      - name: Run tests with ${{ matrix.features }} features
+        if: matrix.features == 'default'
+        run: cargo test
+      - name: Run tests with ${{ matrix.features }} features
+        if: matrix.features != 'default'
+        run: cargo test --features ${{ matrix.features }}
 
-  MSRV:
+  test-linux:
+    name: Test on Linux
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
         toolchain:
+          - stable
           - "1.61"
         features:
-          -
-          - --features static-dictionaries
-    name: Test ${{ matrix.toolchain }} on ${{ matrix.os }} (${{ matrix.features }})
-    runs-on: ${{ matrix.os }}
+          - "default"
+          - "static-dictionaries"
     steps:
       - name: Install OpenCC
         run: |
           sudo apt update
-          sudo apt install doxygen cmake wget
+          sudo apt install -y doxygen cmake wget
           wget https://github.com/BYVoid/OpenCC/archive/refs/tags/ver.1.1.9.tar.gz
           tar xf ver.1.1.9.tar.gz
           cd OpenCC-*
@@ -94,4 +88,9 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: ${{ matrix.toolchain }}
-      - run: cargo test --lib --bins ${{ matrix.features }}
+      - name: Run tests with ${{ matrix.features }} features
+        if: matrix.features == 'default'
+        run: cargo test
+      - name: Run tests with ${{ matrix.features }} features
+        if: matrix.features != 'default'
+        run: cargo test --features ${{ matrix.features }}
